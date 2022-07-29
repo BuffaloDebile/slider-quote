@@ -1,9 +1,10 @@
 const slides = [...document.querySelectorAll('.slide')];
 
 const sliderData = {
+  locked: false,
   direction: 0,
   slideOutIndex: 0,
-  slidesInIndex: 0,
+  slideInIndex: 0,
 };
 
 const directionButtons = [...document.querySelectorAll('.direction-btn')];
@@ -13,6 +14,8 @@ directionButtons.forEach((btn) => {
 });
 
 function handleClick(e) {
+  if (sliderData.locked) return;
+  sliderData.locked = true;
   getDirection(e.target);
   slideOut();
 }
@@ -25,23 +28,25 @@ function getDirection(btn) {
   );
 
   if (sliderData.slideOutIndex + sliderData.direction > slides.length - 1) {
-    sliderData.slidesInIndex = 0;
+    sliderData.slideInIndex = 0;
   } else if (sliderData.slideOutIndex + sliderData.direction < 0) {
-    sliderData.slidesInIndex = slides.length - 1;
+    sliderData.slideInIndex = slides.length - 1;
   } else {
-    sliderData.slidesInIndex = sliderData.slideOutIndex + sliderData.direction;
+    sliderData.slideInIndex = sliderData.slideOutIndex + sliderData.direction;
   }
 }
 
 function slideOut() {
   slideAnimation({
-    el: slides[sliderData.slidesInIndex],
+    el: slides[sliderData.slideInIndex],
     props: {
       display: 'flex',
-      tranform: `translateX(${sliderData.direction < 0 ? '100%' : '-100%'})`,
+      transform: `translateX(${sliderData.direction < 0 ? '100%' : '-100%'})`,
       opacity: 0,
     },
   });
+
+  slides[sliderData.slideOutIndex].addEventListener('transitionend', slideIn);
 
   slideAnimation({
     el: slides[sliderData.slideOutIndex],
@@ -52,12 +57,30 @@ function slideOut() {
       opacity: 0,
     },
   });
-
-  slides[sliderData.slideOutIndex].addEventListener('transitionend', slideIn);
 }
 
 function slideAnimation(animationObject) {
   for (const prop in animationObject.props) {
     animationObject.el.style[prop] = animationObject.props[prop];
   }
+}
+
+function slideIn(e) {
+  slideAnimation({
+    el: slides[sliderData.slideInIndex],
+    props: {
+      transition: 'transform 0.4s ease-out, opacity 0.6s ease-out',
+      transform: 'translateX(0%)',
+      opacity: 1,
+    },
+  });
+  slides[sliderData.slideInIndex].classList.add('active');
+
+  slides[sliderData.slideOutIndex].classList.remove('active');
+  e.target.removeEventListener('transitionend', slideIn);
+  slides[sliderData.slideOutIndex].style.display = 'none';
+
+  setTimeout(() => {
+    sliderData.locked = false;
+  }, 400);
 }
